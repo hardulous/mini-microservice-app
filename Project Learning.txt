@@ -1,0 +1,10 @@
+############ MINI MICROSERVICE APP ##############
+
+Here in this application a user can create posts and can comment on posts. So we can divide our application into 3 main parts ::
+
+(a). React application (frontend)
+(b). Express application for "Posts" service (backend)
+(c). Express application for "Comments" service (backend)
+
+We will use "async" way of communication between these 2 microservices.
+
