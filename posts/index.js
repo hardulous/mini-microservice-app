@@ -1,9 +1,10 @@
 const express = require("express");
 const { randomBytes } = require("crypto");
+const cors = require('cors')
 
 const app = express();
 
-app.use([express.json(), express.urlencoded()]);
+app.use([cors(),express.json(), express.urlencoded()]);
 
 // database
 const posts = {};
