@@ -15,3 +15,9 @@ Here right now ::
 2. For eveyr post we are making an additional api call to get comment so if there are 10 posts so 10 api call to get comment of each post which is very efficient, We can solve this using sync-communication between microservice but accessing database of comment in post micorservice but then no concept of micorservice here so we will rely on async communication in microservice
 
 3. Now we will create an event bus that will take care of dealing with event like post creation, comment creation, pub-sub model and another query micorservice to solve the problem of inefficient way of getting comments. To understand more watch :: "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19099040#overview"
+
+4. Here there are different implementations of "EVENT BUS" available like rabbitMQ, kafka, NATS etc but for learning purpose we will build our own from scratch, To understand mode watch :: https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19099052#overview
+
+5. Here when emiting event "PostCreated" and "CommentCreated" event the /post and /comment microservices does not care about it each other event it is only the /query micorservice which care about event, As the goal of query service is to get all the post with all comments of each post rather than making seprate api call to get comments for each post. 
+
+6. Here even if /post and /comment service is not working still the /query service can serve the data from its database and my application some features is in working state because all microservice are independent of each other. 
