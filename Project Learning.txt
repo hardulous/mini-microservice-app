@@ -16,4 +16,11 @@ Here right now ::
 
 3. Now we will create an event bus that will take care of dealing with event like post creation, comment creation, pub-sub model and another query micorservice to solve the problem of inefficient way of getting comments. To understand more watch :: "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19099040#overview"
 
-4. 
+4. Here there are different implementations of "EVENT BUS" available like rabbitMQ, kafka, NATS etc but for learning purpose we will build our own from scratch, To understand mode watch :: https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19099052#overview
+
+5. Here when emiting event "PostCreated" and "CommentCreated" event the /post and /comment microservices does not care about it each other event it is only the /query micorservice which care about event, As the goal of query service is to get all the post with all comments of each post rather than making seprate api call to get comments for each post. 
+
+6. Here even if /post and /comment service is not working still the /query service can serve the data from its database and my application some features is in working state because all microservice are independent of each other. 
+
+7. Now we are building a feature in our app when if a comment contain word "orange" then we will moderate that commment to status either "approved", "pending" and "rejected", So comment model contain new propertry. Now building these features are easy in monolith application but in micorservices design it is quite difficult.
+
