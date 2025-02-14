@@ -15,3 +15,5 @@ Here right now ::
 2. For eveyr post we are making an additional api call to get comment so if there are 10 posts so 10 api call to get comment of each post which is very efficient, We can solve this using sync-communication between microservice but accessing database of comment in post micorservice but then no concept of micorservice here so we will rely on async communication in microservice
 
 3. Now we will create an event bus that will take care of dealing with event like post creation, comment creation, pub-sub model and another query micorservice to solve the problem of inefficient way of getting comments. To understand more watch :: "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19099040#overview"
+
+4. 
