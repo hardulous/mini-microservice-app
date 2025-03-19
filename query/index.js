@@ -11,7 +11,7 @@ const posts = {};
 /*
    Structure ::
 
-   {
+{
       "2332":{
         id: "332",
         title: "post title-1",
@@ -20,9 +20,7 @@ const posts = {};
           id: 1564, content: "comment-1!"
          }
         ]
-      }
-   },
-   {
+      },
       "8765":{
         id: "7654",
         title: "post title-2",
@@ -32,7 +30,7 @@ const posts = {};
          }
         ]
       }
-   }
+}
 
 */
 
@@ -52,9 +50,9 @@ app.post("/events", (req, res) => {
   }
 
   if (type == "CommentCreated") {
-    const { id, content, postId } = data;
+    const { id, content, postId, status } = data;
     const post = posts[postId];
-    post.comments.push({ id, content });
+    post.comments.push({ id, content, status });
   }
 
   res.send({});

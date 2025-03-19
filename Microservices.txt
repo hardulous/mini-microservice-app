@@ -1,0 +1,53 @@
+########### MICROSERVICES ###########
+
+A "MICROSERVICES" is a small, independent, and loosely coupled service that performs a specific function within a larger system.
+
+Here so far we build server side app using "MONOLITH ARCHITECTURE" in which all of our code needed to implement the app is inside of one single code base and we deploy that code base as as one discrete unit. So we have ::
+
+Request coming from user browser -> Comes to monolith server app -> Go through some pre -processing middleware (auth) -> Goes off to some router which then inspect the request and decide to send it off to some very specific feature (controller) to be further processed (let say goes to feature A which decide to read or write some data out of db, formulate the response and send it back to client)
+
+So a monolith server app contains all the routing, middleware, business login and db access code required to implement all feature of our app. 
+
+In a microservice we have all the routing, middleware, business login and db access code required to implement one feature of our app. 
+
+The difference is a monolith has all the code needed to implement every feature of our app but a microservice has all the code needed to implement just one feature of our app. 
+
+So with microservice architecture we split all the different feature and wraps them inside of their own personalized services and each of these service are entirely self contained. So a service has all the code required to make feature work correctly it has its own middleware, route and even db, And great thing about this approach is if for some reason any feature or service of our app crashes or just disappear a portion of our app is still going to work just fine as a service is 100% standalone and does not require any other service to work correctly. 
+
+
+########## DATA MANAGEMENT BETWEEN MICROSERVICES ############
+
+It means how we can manage data like storing inside of a service and how we communicate that data between different services. This is the biggest problem of microservice architecture as in microservice the way we store and access data is little bit different than what we used to in monolith app. 
+
+EACH SERVICE GETS IT OWN DATABASE (if it needs one) :: REASONS
+
+ (a). We want each service to run independently of other services, EX: If all our services using common db then if anything bad happens to that db then all of our services will crash. If a service(A) has a dependency of db of another service(B) then if that db crashes that service(A) will also going to crash. So having its service its own db we increases the uptime of our entire system. 
+
+ (b). Database schema/structure might change unexpectedly, EX: If service(A) reaching over to db of service(B) and from that db we want an object with key "name" on it to function properly, But for some reason let say the developer of service(B) decides to change the schema or structure of db and now instead of key "name" and key "firstName" is coming and developer forgot to tell this to service(A) team due to which a bug will arise because of just a small key change. 
+
+ (c). Some services might function more efficiently with different types of DB's like let say one service can run more efficiently when uses mongoDB as opposed to postgres or sql etc. 
+
+
+########### WHY DATA MANAGEMENT BETWEEN MICROSERVICES IS A CHALLENGE #################
+
+Let say we has an ecommerce app in which we have 3 feature user sign-up, list out products that user can add to card and ability to buy a product. 
+
+Here when building this app in monolith approach we will have code to sign up, list available products and to purchase a product everything in a single code base and for database we will have a single database like user, products and orders collection. 
+
+Now lets say we try to add a new feature in our monolith app which to show products ordered by a particulat user. In order to implement this single feature we have to query 3 collection 1st to get user info we will query user collection, for orders we will query user id on orders collection and then for product we will query products collection. Inside a monolith server it is absolutly fine no issue. 
+
+Now when converting it to a microservice architecture it look something like this :
+
+Service(A) contains all the code to sign up a user with its own little db. Service(B) for product and Service(C) for order related feature with its own db. 
+
+Now lets say we want to add a new feature or service(D) which will show products ordered by particular user, So service(D) to work need data from collection users, orders and products but in microservice architecture we do not allow service to reach out db owned by other service. 
+
+We need to find a way for microservices to communicate between each other efficiently without any problem. "THIS IS WHY DATA COMMUNICATION BETWEEN MICROSERVICES ARE A BUG CHALLENGE"
+
+
+################# TYPES OF COMMUNICATION BETWEEN SERVICES #####################
+
+In microservices world there are 2 ways by which we communicate between services "SYNC" and "ASYNC". Here these 2 terms are not what they meant in "JAVASCRIPT" world.
+
+ (a). SYNC => Services communicate with each other using direct request
+
