@@ -1,0 +1,117 @@
+########### MICROSERVICES ###########
+
+A "MICROSERVICES" is a small, independent, and loosely coupled service that performs a specific function within a larger system.
+
+Here so far we build server side app using "MONOLITH ARCHITECTURE" in which all of our code needed to implement the app is inside of one single code base and we deploy that code base as as one discrete unit. So we have ::
+
+Request coming from user browser -> Comes to monolith server app -> Go through some pre -processing middleware (auth) -> Goes off to some router which then inspect the request and decide to send it off to some very specific feature (controller) to be further processed (let say goes to feature A which decide to read or write some data out of db, formulate the response and send it back to client)
+
+So a monolith server app contains all the routing, middleware, business login and db access code required to implement all feature of our app. 
+
+In a microservice we have all the routing, middleware, business login and db access code required to implement one feature of our app. 
+
+The difference is a monolith has all the code needed to implement every feature of our app but a microservice has all the code needed to implement just one feature of our app. 
+
+So with microservice architecture we split all the different feature and wraps them inside of their own personalized services and each of these service are entirely self contained. So a service has all the code required to make feature work correctly it has its own middleware, route and even db, And great thing about this approach is if for some reason any feature or service of our app crashes or just disappear a portion of our app is still going to work just fine as a service is 100% standalone and does not require any other service to work correctly. 
+
+
+########## DATA MANAGEMENT BETWEEN MICROSERVICES ############
+
+It means how we can manage data like storing inside of a service and how we communicate that data between different services. This is the biggest problem of microservice architecture as in microservice the way we store and access data is little bit different than what we used to in monolith app. 
+
+EACH SERVICE GETS IT OWN DATABASE (if it needs one) :: REASONS
+
+ (a). We want each service to run independently of other services, EX: If all our services using common db then if anything bad happens to that db then all of our services will crash. If a service(A) has a dependency of db of another service(B) then if that db crashes that service(A) will also going to crash. So having its service its own db we increases the uptime of our entire system. 
+
+ (b). Database schema/structure might change unexpectedly, EX: If service(A) reaching over to db of service(B) and from that db we want an object with key "name" on it to function properly, But for some reason let say the developer of service(B) decides to change the schema or structure of db and now instead of key "name" and key "firstName" is coming and developer forgot to tell this to service(A) team due to which a bug will arise because of just a small key change. 
+
+ (c). Some services might function more efficiently with different types of DB's like let say one service can run more efficiently when uses mongoDB as opposed to postgres or sql etc. 
+
+
+########### WHY DATA MANAGEMENT BETWEEN MICROSERVICES IS A CHALLENGE #################
+
+Let say we has an ecommerce app in which we have 3 feature user sign-up, list out products that user can add to card and ability to buy a product. 
+
+Here when building this app in monolith approach we will have code to sign up, list available products and to purchase a product everything in a single code base and for database we will have a single database like user, products and orders collection. 
+
+Now lets say we try to add a new feature in our monolith app which to show products ordered by a particulat user. In order to implement this single feature we have to query 3 collection 1st to get user info we will query user collection, for orders we will query user id on orders collection and then for product we will query products collection. Inside a monolith server it is absolutly fine no issue. 
+
+Now when converting it to a microservice architecture it look something like this :
+
+Service(A) contains all the code to sign up a user with its own little db. Service(B) for product and Service(C) for order related feature with its own db. 
+
+Now lets say we want to add a new feature or service(D) which will show products ordered by particular user, So service(D) to work need data from collection users, orders and products but in microservice architecture we do not allow service to reach out db owned by other service. 
+
+We need to find a way for microservices to communicate between each other efficiently without any problem. "THIS IS WHY DATA COMMUNICATION BETWEEN MICROSERVICES ARE A BUG CHALLENGE"
+
+
+################# TYPES OF COMMUNICATION BETWEEN SERVICES #####################
+
+In microservices world there are 2 ways by which we communicate between services "SYNC" and "ASYNC". Here these 2 terms are not what they meant in "JAVASCRIPT" world.
+
+ (a). SYNC => Services communicate with each other using direct request like http-request or server(A) making direct request to server(B). EX::
+
+ In above example where we have a new feature or service(D) to fetch products ordered by particular user so let say request from client comes to service(D) then that request goes to service(A) for getting user info then to service(B) or service(C) to get product list ordered by that user. Here at no point in time the service(D) reaching the db of any other service so we are not violating the rule of db-per-service. 
+
+ The pros of this approach ::
+
+  1. "easy to understand because just request is taking place of communicatiin"
+  
+  2. "service(D) will not need a db" as it gets its data from service(A)(B)(C). 
+
+ But the cons of this approach :: 
+ 
+  1."Introduces a dependency between services" (As service(D) is dependent on service(A) to get user data so if it goes down then service(D) also goes down) 
+  
+  2. "If any inter-service request fails, The overall request fails".
+
+  3. "The entire request is only as fast as the slowest request", Lets say service(A)(B)(C) takes 10ms, 20ms and 10ms to return the data to service(D) so total of atleast 20ms which is the slowest request time will be taken by service(D) to process the request.
+
+  4. "Can easily introduce webs of requests", Here with microservices we dont know what other services are doing internally, Going with "SYNC" communication lets say service(A) internally require to make request to service(Q) and it also require to make request to service(K) and so on.. So we can see just to process initial request on service(D) we are internally making dozens of request, And if any of this request fails the entire system of request will fail.  
+
+
+ (B). ASYNC => Services communicate with each other using events like event-bus etc. EX ::
+
+ In ASYNC communication we will introduce something called event-bus which is available to all services. The goal of event-bus is to handle little notification or event being emitted from different services just like a "PUB-SUB MODEL". This events are an object that describe something that has happened or about to happen inside our app. 
+
+ Each service is going to connect to this event bus, Once it is connected each service can either emit events (Publish) or receive events (Subscribe) from event bus.
+
+ But now we have one common thing which is event bus connected to all services, So a single point of failure. But when we deploy event-bus we always make sure it remains resilent and will not crash at all. 
+
+ TO UNDERSTAND HOW "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098874#overview"
+
+ But here even if communication is "ASYNC" we are still relying on other service db due to which again "service-dependency" and other issuse similar to one in "SYNC" communicatiin.
+
+
+############# STORING DATA IN ASYNC COMMUNICATION ###############
+
+First lets define the goal of service(D) more precisely which is given the ID of a user, shows the title and image for every product they have ever ordered. So the database for this service(D) will look like ::
+
+A User collection (id , productIds) in which we will store id of a user sign-up in our app and the id of the product that user has ordered, In Product collection (id, title, image) to get the title and image of product based on product id present in User collection. 
+
+So having above database we can implement the service(D) feature very easily which in turn 100% self-contained as well but the question is how we will create this db for service(D). 
+
+Here the service(D) will never going to be told about user sign-up, product list available and product ordered by user as they are related to their service only. We need to find a way to tell service(D) about data from service(A)(B)(C) without any dependency on them.
+
+For this we will use event-bus to manage event published from service(A)(B)(C) any time an operation perform on them to emit and event and service(D) will subscribe to those events to get data and store in its own db. FOR MORE UNDERSTAND WATCH "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098880#content"
+
+
+############# PROS AND CONS OF ASYNC COMMUNICATION ##############
+
+ PROS ::
+ 
+ (a). Service(D) has zero dependency on other services, As now service(D) has its own db so whenever any request comes on service(D) it will directly try to give response to that request by looking at its own db instead of relying on other services. Though it does required other services to get some infromation to store inside the db but those are indirect dependencies. 
+ 
+ (b). Service(D) will be extremely fast, As service(D) has its own db which it will use to grab information directly and serve to client as response without any delay.
+ 
+ (c). Now if any of the other service failed or crahses then service(D) will still going to work properly because of zero dependency
+
+ CONS ::
+
+ (a). Data duplication, Here as service(A)(B)(C) are sending some data to service(D) to get it stored inside its own db so still some amount of data duplication happening here. And if we think we have to pay extra for storage because of duplicate data then understand that storage in modern world is very cheap. FOR MORE WATCH "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098890#questions"
+
+ (b). Harder to understand, The entire idea of pub-sub model to be implemented amoung the services and for that have to write a lot of code
+
+@@@@@@@@@ NOTE:: The ASYNC communication amoung services in above way using pub-sub is the best way to achieve microservice architecture with high performance and uptime for the application @@@@@@@@@
+
+
