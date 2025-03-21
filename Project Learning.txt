@@ -22,6 +22,22 @@ Here right now ::
 
 6. Here even if /post and /comment service is not working still the /query service can serve the data from its database and my application some features is in working state because all microservice are independent of each other. 
 
-7. Now we are building a feature in our app when if a comment contain word "orange" then we will moderate that commment to status either "approved", "pending" and "rejected", So comment model contain new propertry. Now building these features are easy in monolith application but in micorservices design it is quite difficult.
+7. Now we are building a feature in our app when if a comment contain word "orange" then we will moderate that commment to status either "approved", "pending" and "rejected", So comment model contain new propertry. Now building these features are easy in monolith application but in micorservices design it is quite difficult. Though it is very easy to implement this feature in comment service but still we will create a moderation service for learning purpose 
 
-8. 
+8. Now for above feature every comment has a new propertry called "status" with value either "Approved", "Rejected" and "Pending". 
+
+9. Now there are multiple way to implement the above feature ::
+
+  (a). Option-1 => /comment service emit an event "CommentCreated" when comment is created and now only /moderation service care about this event and not /query service. The /moderation service based on content of comment decide wether to approve or reject and then emit an event "CommentModerated" which now /query service care about to update its db. The -ve side of this approach is there is a delay between a user submited the comment and that comment is persisted by the query service but the comment can have a pending status as well and at some point in time in future can have a different status as well. Right now our assumption is that the /moderation service is instant in nature but in future may be we can have a human takes decision on whether to moderate a comment or not which is not instant in nature. While /moderation service taking time to moderate the comment the user will not be shown the comment because event from /moderate service is not emitted for /query service to work. 
+
+  @@@@ NOTE :: This idea of user making the change and not seeing the result immediately is something that comes a lot in idea of microservices @@@@
+
+  (b). Option-2 => /comment service again emit "CommentCreated" event which is now processed by both /moderation and /query service. The /query service will immediately show the newly created comment with status as pending and /moderation service is working on that comment behind the scene. The /moderation service will then after some time emit the "CommentModerated" event which is then processed by /query service to update the status of that comment either "approved" and "rejected".
+
+  But there is one common issue in both the options, The /query service is a presentation logic which serves the data very quickly to the user. Right now /query service care about only 2 resources "posts" and "comments" but in future it can have other resources as well like "upvotes" , "downvotes", "images" etc, Since query service is just to query and send data quickly to the user it does not make sense for /query service to know how to process precise update like "CommentModerated" event to update the comment. Right now it is small event but in real-world commenting there can be multiple event for updating a comment in which case /query service will end up handling many event in it. 
+
+  (c). Option-3 => Now /comment service is in complete incharge of dealing with comments like how to create, delete, update and anything related to comment. So now /comment service will handle the "CommentModerated" event emitted by the /moderation service and then /comment servic emit a single generic event for /query service which is "CommentUpdated" event which tells query service just take the updated event and put it in db without care about the logic behind the scene.  
+
+  So we will use "Option-3"  
+
+10. 

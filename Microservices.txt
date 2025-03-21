@@ -49,5 +49,69 @@ We need to find a way for microservices to communicate between each other effici
 
 In microservices world there are 2 ways by which we communicate between services "SYNC" and "ASYNC". Here these 2 terms are not what they meant in "JAVASCRIPT" world.
 
- (a). SYNC => Services communicate with each other using direct request
+ (a). SYNC => Services communicate with each other using direct request like http-request or server(A) making direct request to server(B). EX::
+
+ In above example where we have a new feature or service(D) to fetch products ordered by particular user so let say request from client comes to service(D) then that request goes to service(A) for getting user info then to service(B) or service(C) to get product list ordered by that user. Here at no point in time the service(D) reaching the db of any other service so we are not violating the rule of db-per-service. 
+
+ The pros of this approach ::
+
+  1. "easy to understand because just request is taking place of communicatiin"
+  
+  2. "service(D) will not need a db" as it gets its data from service(A)(B)(C). 
+
+ But the cons of this approach :: 
+ 
+  1."Introduces a dependency between services" (As service(D) is dependent on service(A) to get user data so if it goes down then service(D) also goes down) 
+  
+  2. "If any inter-service request fails, The overall request fails".
+
+  3. "The entire request is only as fast as the slowest request", Lets say service(A)(B)(C) takes 10ms, 20ms and 10ms to return the data to service(D) so total of atleast 20ms which is the slowest request time will be taken by service(D) to process the request.
+
+  4. "Can easily introduce webs of requests", Here with microservices we dont know what other services are doing internally, Going with "SYNC" communication lets say service(A) internally require to make request to service(Q) and it also require to make request to service(K) and so on.. So we can see just to process initial request on service(D) we are internally making dozens of request, And if any of this request fails the entire system of request will fail.  
+
+
+ (B). ASYNC => Services communicate with each other using events like event-bus etc. EX ::
+
+ In ASYNC communication we will introduce something called event-bus which is available to all services. The goal of event-bus is to handle little notification or event being emitted from different services just like a "PUB-SUB MODEL". This events are an object that describe something that has happened or about to happen inside our app. 
+
+ Each service is going to connect to this event bus, Once it is connected each service can either emit events (Publish) or receive events (Subscribe) from event bus.
+
+ But now we have one common thing which is event bus connected to all services, So a single point of failure. But when we deploy event-bus we always make sure it remains resilent and will not crash at all. 
+
+ TO UNDERSTAND HOW "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098874#overview"
+
+ But here even if communication is "ASYNC" we are still relying on other service db due to which again "service-dependency" and other issuse similar to one in "SYNC" communicatiin.
+
+
+############# STORING DATA IN ASYNC COMMUNICATION ###############
+
+First lets define the goal of service(D) more precisely which is given the ID of a user, shows the title and image for every product they have ever ordered. So the database for this service(D) will look like ::
+
+A User collection (id , productIds) in which we will store id of a user sign-up in our app and the id of the product that user has ordered, In Product collection (id, title, image) to get the title and image of product based on product id present in User collection. 
+
+So having above database we can implement the service(D) feature very easily which in turn 100% self-contained as well but the question is how we will create this db for service(D). 
+
+Here the service(D) will never going to be told about user sign-up, product list available and product ordered by user as they are related to their service only. We need to find a way to tell service(D) about data from service(A)(B)(C) without any dependency on them.
+
+For this we will use event-bus to manage event published from service(A)(B)(C) any time an operation perform on them to emit and event and service(D) will subscribe to those events to get data and store in its own db. FOR MORE UNDERSTAND WATCH "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098880#content"
+
+
+############# PROS AND CONS OF ASYNC COMMUNICATION ##############
+
+ PROS ::
+ 
+ (a). Service(D) has zero dependency on other services, As now service(D) has its own db so whenever any request comes on service(D) it will directly try to give response to that request by looking at its own db instead of relying on other services. Though it does required other services to get some infromation to store inside the db but those are indirect dependencies. 
+ 
+ (b). Service(D) will be extremely fast, As service(D) has its own db which it will use to grab information directly and serve to client as response without any delay.
+ 
+ (c). Now if any of the other service failed or crahses then service(D) will still going to work properly because of zero dependency
+
+ CONS ::
+
+ (a). Data duplication, Here as service(A)(B)(C) are sending some data to service(D) to get it stored inside its own db so still some amount of data duplication happening here. And if we think we have to pay extra for storage because of duplicate data then understand that storage in modern world is very cheap. FOR MORE WATCH "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/19098890#questions"
+
+ (b). Harder to understand, The entire idea of pub-sub model to be implemented amoung the services and for that have to write a lot of code
+
+@@@@@@@@@ NOTE:: The ASYNC communication amoung services in above way using pub-sub is the best way to achieve microservice architecture with high performance and uptime for the application @@@@@@@@@
+
 
