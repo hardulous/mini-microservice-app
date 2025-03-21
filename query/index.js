@@ -55,6 +55,10 @@ app.post("/events", (req, res) => {
     post.comments.push({ id, content, status });
   }
 
+  if(type === "CommentUpdated"){
+    
+  }
+
   res.send({});
 });
 
