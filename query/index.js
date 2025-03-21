@@ -49,14 +49,24 @@ app.post("/events", (req, res) => {
     posts[id] = { id, title, comments: [] };
   }
 
+  // Here when comment is created without moderation we need to show it to the user 
   if (type == "CommentCreated") {
     const { id, content, postId, status } = data;
     const post = posts[postId];
     post.comments.push({ id, content, status });
   }
 
+  // This event is comming from /comment service after all types of moderation that /comment service is doing has done and just update the comment 
   if(type === "CommentUpdated"){
-    
+    const {id, content, postId, status} = data
+    const post = posts[postId]
+    const comment = post.comments.find((comment)=>{
+      return comment.id === id
+    })
+
+    // Here this event is every generic rather than service specific so we will just update the whole comment because we don't know what field of comment is actually getting updated
+    comment.status = status
+    comment.content= content
   }
 
   res.send({});

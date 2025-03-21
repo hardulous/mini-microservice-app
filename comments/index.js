@@ -18,7 +18,10 @@ app.post("/posts/:id/comments", async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
   const comments = commentsByPostId[id] || [];
+
+  // Now when comment is created the default status is "pending" 
   comments.push({ id: commentId, content, status: "pending" });
+
   commentsByPostId[id] = comments;
 
   // Publishing an event that a comment has been created
@@ -39,6 +42,8 @@ app.post("/posts/:id/comments", async (req, res) => {
 app.post("/events", async (req, res) => {
   console.log("Received Event", req.body.type);
   const { type, data } = req.body;
+
+  // This event is coming from /moderation service to tell that comment has been moderated 
   if (type === "CommentModerated") {
     const { postId, id, status, content } = data;
     const comments = commentsByPostId[postId];
@@ -47,6 +52,7 @@ app.post("/events", async (req, res) => {
     });
     comment.status = status;
 
+    // After moderation the /comment service will emit an event for /query service to update the comment that is moderated
     await axios.post("http://localhost:4005/events", {
       type: "CommentUpdated",
       data: {
