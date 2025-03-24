@@ -17,6 +17,9 @@ const CommentList = ({ postId, comments }) => {
   }, []);
 
   const renderedComments = comments.map((comment) => {
+    let content;
+    if(comment.status === "approved") content = comment.content
+    if(comment.status === "approved") content = comment.content
     return <li key={comment.id}>{comment.content}</li>;
   });
 
