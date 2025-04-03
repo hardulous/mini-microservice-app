@@ -308,6 +308,8 @@ Now if we run " docker build . " command we still gets error " /package.json " n
 
 But we also need to set working directory using " WORKDIR /usr/app  " command, It is used to set the working directory inside the container. Any subsequent commands (such as COPY, RUN, or CMD) will be executed relative to this directory.
 
+We can see the directory inside the container using the " sh command when running docker run ". We should always put our code inside the container in "/usr/app" directory rather than in root directory to avoid conflict and overriden of exisitng files and folders present in root.
+
 @@@@@ 
 
 NOTE :: Most of the image use alpine as base image because of its small size, security, and efficiency.
@@ -321,8 +323,32 @@ What is happening right now our browser makes request to localhost:8080 in our l
 
 Port mapping in Docker allows you to expose a container's internal ports to the host machine so that external clients can access the services running inside the container.
 
+To run our container and expose its internal port ::
+
+" docker run -p local_port ( Any incoming request on port of our local machine ) : container_port ( Redirect it to the port of the container ) <IMAGE-ID> ". EX ::
+
+" docker run -p 8080:8080  bishtaman/simpleweb "
+
+Now if we go to localhost:8080 on our local-machine the request will be redirected to the localhost:8080 of the container's port.
+
+Here this port of local-machine and container does not need to be identical, We can do 5000:8080 , 3000:8080 and app will still run fine. Cuz both local-machine and container's port are independent of each other even if they are same. But to change container's port from 8080 to lets say 8000 we need to make sure our nodeJS server is also listening at 8000 instead of 8080.
 
 
+@@@@@ 
+
+NOTE :: Only the external client does not interact with container's port by-default but the container can make request on its own to the outside world, ex any time we run " npm run install " in the container the container is allowed to reach to outside world internet which is " NPM ".
+
+Here this port mapping thing is totally runtime we cannot set-up the port forwarding in the dockerFile. 
+
+@@@@@
 
 
+######## UNNECESSARY REBUILD #########
 
+Here we have our container that is running the application in localhost:8080, Now if we make any changes to the code and refresh the app we will not see that changes on the screen, Because any time we create image or container we are taking the FS snapshot which is the source code of app and currently we are running the older version of source-code as snapshot, So right now we have to rebuild the container again using " docker build ".
+
+Here righ now after step " WORKDIR /usr/app " we are copying all our files and folder using " COPY ./ ./ ", Since we have made change on the index.js file which docker has detected the COPY step cache has been invalidated due to which this and step after this has to be executed again as a result the " npm install " executed again. 
+
+So to avoid installing dependency if we have not made changes to the package.json file and only source code, We will put " COPY ./package.json ./ " command before executing the " npm install " as npm i requires only package.json file and not source-code and then " COPY ./ ./ " put source-code in the container.
+
+Now make any changes we want in source-code and it will not invalidate the step of install dependencies. The step is invalidated only if we make change to the package.json file. Now if we build the container multiple time by making changes to only source-code the dependency will not be installed again. 

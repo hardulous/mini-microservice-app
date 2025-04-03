@@ -115,3 +115,6 @@ For this we will use event-bus to manage event published from service(A)(B)(C) a
 @@@@@@@@@ NOTE:: The ASYNC communication amoung services in above way using pub-sub is the best way to achieve microservice architecture with high performance and uptime for the application @@@@@@@@@
 
 
+####### DEPLOYMENT ISSUE #######
+
+
