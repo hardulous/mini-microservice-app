@@ -1,0 +1,58 @@
+########### DOCKER #############
+
+So far we were installing software in which we follow procedures like "download installer", "run installer", "get an error message during installation", "troubleshoot issue", "re-run installer", "get another error" and repeat the process again. 
+
+So this is what "docker" is trying to fix, Docker makes it very easy to run any given software on any given os or environment, It makes it really easy to install and run software without worrying about setup or dependencies.
+
+Docker is an ecosystem of projects, tools, pieces of software like "Docker Client", "Docker Server", "Docker Machine", "Docker Images", "Docker Hub" and "Docker Compose" that come together to form a platform around creating or running something called "Container", EX ::
+
+lets say we run a command "docker run -it redis", What happens behind the scene the "Docker CLI" reaches out to something called "Docker Hub" which downloads a single file called "Docker Image" of redis, An image is a single file containing all the dependencies and all the configuration required to run a program called "redis". This image is a single file that gets stored on our hard drive which we can use to create something called a "Container". 
+
+A "Container" is an instance of an image or a program that runs on its own isolated environment with set of hardware resources. SO ::
+
+@@@@@@@
+ 
+ Docker is an open-source platform that enables developers to build, package, and deploy applications in lightweight, portable containers. These containers include everything an application needs to run, such as code, dependencies, libraries, and configurations.
+
+Instead of running applications directly on the host system, Docker containers run in isolated environments, making them more efficient and consistent across different computing environments. 
+
+@@@@@@@@@@@
+
+
+########## DOCKER FOR WINDOWS ############
+
+We will install a software called "Docker For Windows" since our os is windows and inside of it we have 2 very important tools called "Docker Client / Docker CLI" ( Tool that we are going to use to issue commands to Docker Server) and "Docker Server / Docker Daemon" ( Tool that is responsible for creating images, running containers etc ). 
+
+So "Docker CLI" is what we interact with using commands and "Docker Server" is what running behind the scene to process those commands. 
+
+TO INSTALL DOCKER ON WINDOWS WATCH "https://www.udemy.com/course/microservices-with-node-js-and-react/learn/lecture/34345306#overview"
+
+
+########## WHY WSL REQUIRED FOR DOCKER IN WINDOW ############
+
+WSL (Windows Subsystem for Linux) is required to run Docker on Windows because Docker relies on Linux kernel features, such as namespaces and cgroups, to manage containers. Docker was originally designed for Linux and depends on features like cgroups, namespaces, and overlay filesystems, which are not available natively in Windows.
+
+WSL 2 provides a lightweight Linux kernel inside Windows, allowing Docker to function as if it were running on a Linux system.
+
+########### DOCKER CLIENT #############
+
+The Docker Client is a command-line tool (docker) or a graphical interface that allows users to interact with the Docker daemon (server) to manage containers, images, networks, and volumes. There are many types of docker client, Command-Line Interface (CLI), Docker Desktop etc. 
+
+FLOW :: If we run the command "docker run hello-world"
+
+We 1st see an error "Unable to find image 'hello-world:latest' locally" and then we will see "Hello from Docker!" and list of steps involves to generate this message. 
+
+So here what is happening behind the scene, When we put command "docker run hello-world" it starts up the docker client or docker cli which is in charge of taking commands from us, process them a bit and then send it to docker server. Docker server is the one in charge of heavy lifting. 
+
+The above command means to start a new container using the image with the name of "hello-world", Inside hello-world image contains a tiny program whose solo purpose is to print the messages we see in terminal. 
+
+The docker server when gets the command try to start up a new container using the image "hello-world", The 1st thing the docker server do is to check if it already had a local copy of "hello-world" image in the user's personal computer, For this the docker server look into something called the image cache. As we have never installed the "hello-world" image before so the image cache is empty then docker server decide to reach out to a free service called "Docker Hub" which is a repository of free public images that we can freely download and run on our personal computer. 
+
+So docker server will download the "hello-world" image from docker hub and store it inside image cache where it can get it again at some point in future very quickly without having to redownload from docker hub. 
+
+Once we got the image from image cache the docker server will then create the instance of that image called "CONTAINER". The container will then run the single program present in "hello-world". 
+
+Now if we run the command "docker run hello-world" no error will come and immeditely the program will run because we have already installed the docker 
+
+
+####### 
