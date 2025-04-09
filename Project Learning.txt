@@ -40,4 +40,24 @@ Here right now ::
 
   So we will use "Option-3"  
 
-10. 
+10. There is one issue in our current app which is what will happen if any of our service goes down. Lets say after some time the /moderation service goes down due to which if any of the event at that time was emitted they will not be received in /moderation service. Right now there is no way to get the lost events. 
+
+Another issue is lets say we dont created /query service but after some years when /comment and /post service is working, So in thise case how to sync the data present in /comment and /post db in /query service db. 
+
+To solve this 2 issues we have 3 way :
+
+ (a). Option-1 => /comment and /post service is running throughout the lifetime of the app and after 1 year the /query service comes to the picture so it sync it with the db we will make direct http request from /query service to /post and /comment to get the data from their db and sync it in .query. The -ve side of this approach is we are making syncronous communication in which have to write some code in /post and /comment to fetch all the data from their db which in a typical app we dont create such endpoints. 
+
+ (b). Option-2 => Giving direct access to db of /post and /comment instead of making syncronous http request. The -ve side of this approach is now /query service has to write code to interact with db of both /post and /comment which is a lot of codde to write if both of the db is different. 
+
+ (c). Option-3 => Here the /query service will work if it has access to all the events that had been emitted in the past. So the event emited by /post and /comment if /query has access to them it will work just fine. So whenever any event comes to event-bus so apart from sending it to all the micorservices it will also going to store it internally in some even-bus data-store. 
+
+ In real-world events are stored in some db rather than in memory and if we think again that these events can be too much to store so again the storage in modern world is very cheap. 
+
+ Whenever any service like /query comes online it will 1st fetch all the events stored in event-bus 
+
+ If we think that storing events is a inefficient way then trust me "THIS IS HOW REAL WORLD MICROSERVICES WORKS AND THIS IS HOW PEOPLE IMPLEMENT IT"
+
+11. Now based on option-3 above we will put our /query service down and create post and comment, Then launch our /query service to see if it can reach our event-bus to get all the event occured before it is started. Here our implementations of event-bus is kind of similar to real world production ready event-bus but never use this event-bus for production app.
+
+12. 

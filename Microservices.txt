@@ -115,3 +115,34 @@ For this we will use event-bus to manage event published from service(A)(B)(C) a
 @@@@@@@@@ NOTE:: The ASYNC communication amoung services in above way using pub-sub is the best way to achieve microservice architecture with high performance and uptime for the application @@@@@@@@@
 
 
+####### DEPLOYMENT ISSUE #######
+
+If we look at solution on how to deploy our app we wil have " digital ocean, AWS, Ms Azure and rent a VM ( Virtual Machine ) ". In VM like we can transfer our source code and run each services like we are running in our local system. 
+
+Now lets say our /comment service is getting overbudned and getting used by many users, To solve it we can create a copy of /comment service on same VM and then load balance the request on them. But there are some challenges with this apprach, Now new copy of /comment service need to be runned on a new port, As new port and new service is present which our event-bus need to be known as it has to send events on that new copy of /comment service so have to change its source-code. So our event-bus code now coupled with no of services running which we not want.
+
+This scenario gets more complicated if now our /comment service is burdening the VM so we decide to create a new VM on which our new /comment service copy is running. Now not only our event-bus should know in which port the copy is running but also how to reach to that new VM where the copy is running.
+
+So for above cases we need a better solution, Something that keeps track of all the different services running inside the app, Has the ability to create new copy of service on the fly, Know whether a service is running or not. For these issues we will use "DOCKER" and "KUBERNETES".
+
+With docker we will create a series of containers, A container is like a isolated computing environment, It contains everything required to runs a single program or app. We will create a seperate docker container in which we will run our individual services. If we need a 2nd copy of /comment service so we will create a new container for that. 
+
+With docker we are solving the issue of " Not making assumption that user's system contains everything that requires to run our app " and " user's system does not need to know how to start our app ".
+
+Kubernetes is a tool for running a bunch of different containers. It is an open-source container management platform that automates the deployment, scaling, and management of containerized applications.
+
+In Kubernetes we give it some configuration file called "YAML" that describe how we want our container to run and interact with each other. Kubernetes then create these container that are going to run our programs for us, handle communication or network request between all these containers. So it is a tool to run different programs and makes communication between them easy. 
+
+In Kubernetes we have something called " CLUSTER ", A cluster is a group of virtual machines (called nodes) where apps run. These nodes or VMs are managed by " MASTER NODE " (A program that is going to manage everything inside our cluster). EX :: We will provide a config file to Kubernetes to run 2 copies of /post service and make sure that they are easily accessible after created. The master node gets this config file and implement the step like creating the /post service container and randomly assigned to any node. 
+
+Now our event-bus should also know how to communicate with these 2 created /post service container in different node, For this Kubernetes give us ability to just create a 3rd party thing to which we can send request to and it will forward it to appropriate service. 
+
+######### DOCKERIZE MICROSERVICES ##########
+
+Lets dockerize the created microservices and now we will not copy paste the whole source code with " COPY ./ ./ " command as this will also copy and paste the node_modules, To avoid this we will create a file called " .dockerignore ", and there just mention the node_modules which will remove node_modules from copying during image building process. 
+
+
+
+
+
+
