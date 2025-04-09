@@ -142,7 +142,34 @@ Now our event-bus should also know how to communicate with these 2 created /post
 Lets dockerize the created microservices and now we will not copy paste the whole source code with " COPY ./ ./ " command as this will also copy and paste the node_modules, To avoid this we will create a file called " .dockerignore ", and there just mention the node_modules which will remove node_modules from copying during image building process. 
 
 
+######### CREATING A POD ##########
 
+Now we will just create a one pod that is running a container of /post inage. 1st create a image with "docker built -t bishtaman/posts:0.0.1" version on it. 
+
+Now we will create a seperate folder "infra" which contain all the configuration, code related to deployment. Inside there is another folder called "K8s" stand for kubernetes. Inside create a file called "posts.yaml" which contain some config on it, After done execute the command " kubectl apply -f posts.yaml " and our pod has been created in which only 1 container /post image is running which we can see using " kubectl get pods ". 
+
+ (a). apiVersion: v1  => When we install k8s it comes with preset list of different objects we can create, So we can create things like pods, deployment services etc. The goal of apiVersion is to tell k8s about the pool of objects that we want to draw from. Although we can create custom object as well.
+
+ (b). kind: Pod => The type of object we want to create from the pool. Here, it’s a Pod, which is the smallest unit in Kubernetes.
+
+ (c). metadata: name: posts => Config options for the object we are about to create. By providing the name: posts we are telling when this pod is created give it a name of posts. name: posts gives your Pod a unique name. This name is how you'll refer to this Pod inside the cluster.
+
+ (d). spec: containers: => Config option for defining what should be going on inside the pod we have created. The only propertry right now is containers: which is array mentioned with " - " before name: posts. So we can have many container inside a pod but right now only one. So the container is created will have a name "posts" by name: posts propertry and the purpose of its is for debugging, and image: bishtaman/posts:0.0.1 for mentioning docker image that this container runs. 
+
+ Here the reason for mentioning tag on image with version is because if we dont mention the version then docker by-default fetch the latest version of the image. If we try to create a pod that has latest on the end then k8s default behaviour is to look at docker HUB for that image. As we have not pushed the image in docker HUB so we will get error in that case, So by putting the version 0.0.1 k8s will look for that image in local system. 
+
+
+########## COMMON k8s COMMAND ###########
+
+Here similar to docker is just about running containers, K8s is all about running bunch of containers together.
+
+(a). kubectl get pods => List out all the pods with status in our cluster
+
+(b). kubectl exec -it [pod_name] [cmd] => To execute a command inside a running container in a pod.
+
+(c). kubectl logs [pod_name] => Print out logs tied to a container
+
+(d). kubectl delete pod [pod_name] => 
 
 
 
