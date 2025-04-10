@@ -165,11 +165,23 @@ Here similar to docker is just about running containers, K8s is all about runnin
 
 (a). kubectl get pods => List out all the pods with status in our cluster
 
-(b). kubectl exec -it [pod_name] [cmd] => To execute a command inside a running container in a pod.
+(b). kubectl exec -it [pod_name] -- [cmd] => To execute a command inside a running container in a pod. So to start a shell inside a container running inside a pod " kubectl exec -it posts -- sh ". Here pod can also run more than one container so to execute command on specific container " kubectl exec -it posts -c <container_name> -- command ".
 
-(c). kubectl logs [pod_name] => Print out logs tied to a container
+(c). kubectl logs [pod_name] => Print out logs tied to a container running inside a pod. 
 
-(d). kubectl delete pod [pod_name] => 
+(d). kubectl delete pod [pod_name] => To delete a pod from the cluster. 
+
+(e). kubectl apply -f [config_file_name] => To create or update k8s objects (pods, deployment, service etc) based on mentioned config file.
+
+(f). kubectl describe pod [pod_name] => To get detailed information about a specific Pod — way more than kubectl get pods. For debugging purpose 
 
 
+########## DEPLOYMENT ###########
 
+Here right now we are creating pod directly using config file but in real world this is not how we create pod but we use something called "DEPLOYMENT". A DEPLOYMENT is a kubernetes object that manages group of pods, Each of these pods are identical in nature so they will be running same config, container inside of them. The DEPLOYMENT has 2 main job ::
+
+ (a). Make sure if any of the pod crashes or just disappear for any reason then the deployment will automatically create a replacement pod for us.
+
+ (b). If we decide to update code inside our container that is shifting to v2 of our app then deployment is going to take care of this update for us, The deployment behind the scene create new pods for us that are running new version of the app and start managing them and remove the old pods. 
+
+Lets create a deployment file with name "posts-depl.yaml". 
