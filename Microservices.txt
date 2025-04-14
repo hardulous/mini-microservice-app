@@ -184,4 +184,103 @@ Here right now we are creating pod directly using config file but in real world 
 
  (b). If we decide to update code inside our container that is shifting to v2 of our app then deployment is going to take care of this update for us, The deployment behind the scene create new pods for us that are running new version of the app and start managing them and remove the old pods. 
 
-Lets create a deployment file with name "posts-depl.yaml". 
+Lets create a deployment file with name "posts-depl.yaml". A lot of config is similar to one used for creating pod. 
+
+ (1). apiVersion: apps/v1 => Tell k8s which version of api we want to use here deployment is under the apps/v1.
+
+ (2). kind: Deployment => The type of object we want to create 
+
+ (3). metadata: name: posts-depl  => Give information about the object which is Deployment a unique name in the cluster
+
+ (4). spec: replicas: 1  =>  To specify how the deployment should behave, replicas: 1 tells Kubernetes to maintain 1 running Pod at all times.
+
+ (5).  selector: matchLabels: app: posts  => This is how the Deployment knows which Pods belong to it. It matches Pods with the label app: posts. 
+
+ (6).  template: metadata: labels: app: posts  =>  This is the blueprint for creating the Pods. The label app: posts is used so the selector above can match these Pods. Here this above selector.matchLabels and labels of template are working together. A deployment in order to know which pod it should manage, So deployment will manage all the pods with label app: posts. And template is where the actual config for creating a pod is present. 
+
+ (7).  spec: containers: - name: posts image: bishtaman/posts:0.0.1 =>  Config option for specifying the behaviour of the pod this deployment is trying to create. Here is the actual container definition. name: posts: Name of the container (used in logs, etc.) image: bishtaman/posts:0.0.1: The Docker image that the container will run.
+
+
+######## COMMAND AROUND DEPLOYMENT #########
+
+ (a). kubectl get deployments => List out all the running deployments in our cluster. To see no of pods running by this deployment, kubectl get pods and we will see pod with deployment unique metadata.name added to it with -unique_id. Now if we delete the pod by kubectl delete pod "pod-name" then the deployment will automatically re-create the pod with unique deployment name and id.
+
+ (b). kubectl describe deployment [depl-name]  =>  To get information specific to the deployment, For debugging purpose
+
+ (c). kubectl delete deployment [depl-name]  =>  To delete the deployment from the cluster, As soon as we delete the deployment all the pods managed and created by this deployment are also be gone. 
+
+
+Here now lets say we have version-2 of our app we want to deploy so using deployment to change the version of image and re-deploy we have 2 ways ::
+
+ (a). Make a change to the source-code, Rebuild the image by specifying a new version of it, In deployment config file update the version of the image and then run the " kubectl apply -f [depl-file] " command and now instead of created it will show configured means update has been done. But this method does not get used in profession real world deployment because every time to update the app version we have to come to config file to change the version of image which can lead to some typo error if config is of very large size, So we need to figure our a way so config file know to always look out for latest image.
+
+ (2). The deployment config file now be using 'latest' tag in the pod spec section either put this "image: bishtaman/posts" or "image: bishtaman/posts:latest" in both case it will pick latest image, Make an update to the source-code, Build the image, Push the image to the docker HUB ( Using docker push <image-name> ) and then run the command " kubectl rollout restart deployment posts-depl " ( This command is used to restart a deployment — it triggers a rolling restart of all Pods managed by the deployment replacing the old ones with the new ones. )
+
+
+########## SERVICES ###########
+
+Here right now we have only one pod running in our cluster and inside that pod we have a container which is running the /posts service, So the question is how we can make request to the actual nodeJS server of posts app hidden amoung these crazy layers. For this we will use " SERVICES ".
+
+A service is also a kubernetes object similar to pod and deployment and also created using config file. We use service to create communication between the pods inside the cluster or to get access to pod outside the cluster. 
+
+So any time /event-bus want to communicate with /post service or the client want to access frontend of our app from outside world we will make use of " SERVICE ".
+
+In Kubernetes, Pods are temporary — they can die and restart at any time, which means their IP addresses can change.
+A Service provides a stable, permanent way to access Pods, no matter how often they restart.
+
+ TYPES OF SERVICES ::
+
+ (a). Cluster Ip => It is used to set up communication between the pods inside the cluster by setting up easy to remember URL to access a pod.
+
+ (b). Node Port => It used to access a pod outside the cluster by only for development process.
+ 
+ (c). Load Balancer => It is also used to access a pod outside the cluster but for production level publicly via a cloud provider's load balancer
+
+ (d). External Name => It is used to connect to external service outside the cluster.
+
+So out of these 4 we mostly work with " CLUSTER ID ( for internal microservices communication ) and LOAD BALANCER ( For making microservices available to end client ) "
+
+Here service is also object in k8s so in order to create we need to make use of config file similar to one used for pod and deployment. 
+
+ @@@@@@ Node Port Service @@@@@@@
+
+ (a). metadata: name: posts-srv  =>  The name of the service we are creating.
+
+ (b). spec: type: NodePort  =>  To define how the service should behave, Here type of service is NodePort which exposes the service outside the cluster on a static port (between 30000–32767).
+ 
+ (c). selector: app: posts  =>  Its goal is to tell service which pods it needs to expose to outside world
+
+ (d). ports: =>  Describes which port the service exposes and where it forwards traffic. It is an array entry determined by "-" sign, " name: posts " ( Just a name/label for this port configuration (not required, but helpful). ), " protocol: TCP (Protocol used) ", " port: 4000 ( Port of the service in which actual request comes from the client ) " and " targetPort: 4000 ( The container port where the actual app is running (inside the Pods) and this should match port our app is listening on ) "
+
+Here node is the actual VM which is running the k8s objects, Here we have a pod inside which we have a container which is running a app on port 4000 and this where we want traffic to go so this is the TARGET PORT, Now we have created a  NodePort service that has a port of its own refer as normal PORT. 
+
+Now we are sending traffic to NodePort service listening on port 4000 and that service internally going to redirect traffic to port 4000 of container itself. 
+
+Here the port of service and targetPort of container does not need to be identical. 
+
+Now run the config file using " kubectl apply -f post-srv.yaml ", and " kubectl get services " to get list of all the running services in our cluster. Now on list we under PORT(S) we have post-srv running with "4000/30000-32000 (any port between iit)", Here this randomly assigned port "30000-32000" is how we can access our service.
+
+Here we have another port unlike the normal port and target port called " nodePort ", A NodePort is a real TCP/UDP port that Kubernetes opens on every node in your cluster. It’s how Kubernetes allows traffic from outside the cluster to reach a Pod inside the cluster.
+
+So to actually access our /post container, If using docker-desktop for window/mac we can access using " localhost:<nodePort>/posts ". 
+
+
+  @@@@@@ Cluster Ip Service @@@@@@@=
+
+Here right now we have pod for /post service and /post will communicate with event-bus to publish event and event-bus then publish back that event to all services including /post itself, So we will create a pod that will run our /event-bus service and create a Cluster Ip service to allow communication between /post and /event-bus. 
+
+Here rigt now we have 2 pods /posts and /event-bus both can technically communicate with each other directly but it is not recommended because " We dont know ahead of time the ip address each port has been assigned to because it is random " and " In K8s, Pod IPs are not stable. They can change anytime the Pod restarts or gets rescheduled. ".
+
+So anytime /post want to make request to /event-bus it will make it to Cluster Ip service 1st which will redirect the request to /event-bus. And vice-versa for /event-bus when it wants to send request to all other microservices.
+
+So now we will " Create image of event-bus -> Push image to dockerHub -> Create deployment for event-bus -> Create a cluster ip service for /event-bus and /posts "
+
+Here instead of creating seprate config file for Cluster Ip service we can add it into same deployment file which is event-bus-depl.yaml as well. To add multiple object inside a same config file just add " --- " and start writing object config from next line.
+
+Now when we run "kubectl apply -f event-bus.yaml" which contain 2 object we will see in terminal that the deployment object remian unchanged and service of event-bus will be created
+
+Here for post we now have 2 service nodePort and ClusterIp so make sure to have different name of the service because each service is a separate Kubernetes resource, and Kubernetes doesn’t allow multiple resources of the same kind to share the same name
+
+Here righ now in /post microservice code we are making request to /event-bus using url "http://localhost:4005/events" but now our app is running inside a container so we cannot directly access it using localhost, So to access it inside the pod we will use url " http://<ClusterIp-Service-Name>:Port ", So it will be "http://event-bus-srv:4005" and if /event-bus microservice makes request to /posts it will be "http://posts-clusterip-srv:4000". 
+
+
