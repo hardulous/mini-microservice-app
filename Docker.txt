@@ -55,7 +55,6 @@ Once we got the image from image cache the docker server will then create the in
 Now if we run the command "docker run hello-world" no error will come and immeditely the program will run because we have already installed the docker 
 
 
-####### 
 ############# WHAT IS A CONTAINER ############
 
 To understand what a container is 1st we need to know how our os works, Here most os have something called "Kernel" which is a running software process that governs or control access between all the programs running on our computer (Software) and all the physical hardware that is connected to our computer (Hardware). 

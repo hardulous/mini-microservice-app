@@ -25,7 +25,7 @@ app.post("/posts/:id/comments", async (req, res) => {
   commentsByPostId[id] = comments;
 
   // Publishing an event that a comment has been created
-  await axios.post("http://localhost:4005/events", {
+  await axios.post("http://event-bus-srv:4005/events", {
     type: "CommentCreated",
     data: {
       id: commentId,
@@ -53,7 +53,7 @@ app.post("/events", async (req, res) => {
     comment.status = status;
 
     // After moderation the /comment service will emit an event for /query service to update the comment that is moderated
-    await axios.post("http://localhost:4005/events", {
+    await axios.post("http://event-bus-srv:4005/events", {
       type: "CommentUpdated",
       data: {
         id,

@@ -14,18 +14,19 @@ app.post("/events", (req, res) => {
 
   // Storing the new emitted event inside the array 
   events.push(event)
-
+  console.log(event)
   // Here whatever event is coming pass it down to all microservices
-  axios.post("http://localhost:4000/events", event).catch((err) => {
+  axios.post("http://posts-clusterip-srv:4000/events", event).catch((err) => {
+    console.log(err)
     console.log(err.message);
   });
-  axios.post("http://localhost:4001/events", event).catch((err) => {
+  axios.post("http://comments-srv:4001/events", event).catch((err) => {
     console.log(err.message);
   });
-  axios.post("http://localhost:4002/events", event).catch((err) => {
+  axios.post("http://query-srv:4002/events", event).catch((err) => {
     console.log(err.message);
   });
-  axios.post("http://localhost:4003/events", event).catch((err) => {
+  axios.post("http://moderation-srv:4003/events", event).catch((err) => {
     console.log(err.message);
   });
 
@@ -37,4 +38,4 @@ app.get("/events", (req,res)=>{
   res.send(events)
 })
 
-app.listen(4005, () => console.log("Listening on 4005"));
+app.listen(4005, () => console.log("Listening on 4005 wew", events));

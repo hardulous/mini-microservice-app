@@ -110,7 +110,7 @@ app.listen(4002, async () => {
 
   // Here below after /query service is launched and re-launced again after error then it will 1st fetch all the events happened before it 
   try {
-    const res = await axios.get("http://localhost:4005/events");
+    const res = await axios.get("http://event-bus-srv:4005/events");
  
     for (let event of res.data) {
       console.log("Processing event:", event.type);

@@ -7,7 +7,12 @@ const PostCreate = () => {
   const onSubmit = async (event) => {
     event.preventDefault();
 
-    await axios.post("http://localhost:4000/posts", {
+    // await axios.post("http://localhost:4000/posts", {
+    //   title,
+    // });
+
+    // Now instead of making request to localhost we will make request to domain mentioned in host file which is handled my ingress controller 
+    await axios.post("http://posts.com/posts/create", {
       title,
     });
 

@@ -1,3 +1,4 @@
+
 ########### MICROSERVICES ###########
 
 A "MICROSERVICES" is a small, independent, and loosely coupled service that performs a specific function within a larger system.
@@ -6,7 +7,7 @@ Here so far we build server side app using "MONOLITH ARCHITECTURE" in which all 
 
 Request coming from user browser -> Comes to monolith server app -> Go through some pre -processing middleware (auth) -> Goes off to some router which then inspect the request and decide to send it off to some very specific feature (controller) to be further processed (let say goes to feature A which decide to read or write some data out of db, formulate the response and send it back to client)
 
-So a monolith server app contains all the routing, middleware, business login and db access code required to implement all feature of our app. 
+So a monolith server app contains all the routing, middleware, business logic and db access code required to implement all feature of our app. 
 
 In a microservice we have all the routing, middleware, business login and db access code required to implement one feature of our app. 
 
@@ -282,5 +283,147 @@ Now when we run "kubectl apply -f event-bus.yaml" which contain 2 object we will
 Here for post we now have 2 service nodePort and ClusterIp so make sure to have different name of the service because each service is a separate Kubernetes resource, and Kubernetes doesn’t allow multiple resources of the same kind to share the same name
 
 Here righ now in /post microservice code we are making request to /event-bus using url "http://localhost:4005/events" but now our app is running inside a container so we cannot directly access it using localhost, So to access it inside the pod we will use url " http://<ClusterIp-Service-Name>:Port ", So it will be "http://event-bus-srv:4005" and if /event-bus microservice makes request to /posts it will be "http://posts-clusterip-srv:4000". 
+
+Now in both /post and /event-bus microservice just update the request to each other instead of localhost use the ClusterIp service route. And now in thunderclient or postman make request of creating a post using the /post nodePort service route "http://localhost:31014" as it is available for outside use.
+
+Here once request for creating /post is done check the pod logs using " docker logs posts " and " docker logs event-bus " and there we will see the console.log of event we have done in /events endpoint of /post and /event-bus to make sure if they can communicate with each other or not using clusterip service
+
+@@@@@@@@@ 
+
+ NOTE:: I encounter a bug in which even after changing the code and created new image and updated in dockerHUB still the deployment is not using that latest image as a result always check for image_ID in docker desktop to make sure if latest image are getting used or not.
+
+@@@@@@@@@
+
+Now we will do the same step of creating clusterip, deployment and updating source-code for new clusterip-url of all microservices for /moderation, /query and /comment microservice. Here instead of sepretly applying config file we can bulk process config file using " kubectl apply -f . " ( by . means find all the different config file in the current directory )
+
+Now all of our microservices are loaded into the cluster and have ability to communicate with each other. 
+
+
+######## LOAD BALANCE SERVICE ##########
+
+Now we need to make our react application available to outside user for which we will use load balance service. Our current react app is built using CRA development server so we will put it inside a new pod by creating a docker image and container. 
+
+Whenever user open our react app in browser the react dev server whose goal it to take the code and generate and html, css and js file out of it and return it back to end user.
+
+Here this react dev server is not responsible for making any request to any microservices like /post, /query, /comment etc. These requests are being made from user's browser infact. So after initial app start up the dev server is no longer needed. So we have 2 ways to make our react-app make request to microservices ::
+
+ (a). Bad Approach => Create a nodePort service for each microservice, As a nodePort allow a microservice pod to be available to outside world and we can modify react app code to make request to these nodePort services. The downside is the nodePort service port is random in nature so every time any nodePort service get re-deploy we have to make change to react code as well. 
+
+ (b). Good Apporach => Instead of nodePort we will create "Load Balancer Service" whose goal it to provide a single point of entry inside the cluster, So our react app make request to load balancer service which contains some config that takes the request and forward it to ClusterIp service of the the appropriate pod handling that request. This approach is used in both production and development.
+
+Here we have 2 things ::
+
+ (a). LOAD BALANCER SERVICE => It exposes our application (microservices) to outside world by telling k8s to reach out to its provider and provision a load balancer to get traffic from outside into a single pod. 
+
+ (b). INGRESS => It is a pod with a set of routing rules to distribute traffic to other services. Think of it as a smart router that sits at the edge of your cluster, controlling how requests from the outside world reach your internal services.
+
+Lets image we have a cluster which contain only a single pod running inside some cloud provider like AWS, GC, Azure etc. We want to get traffic or network request from outside world into this single pod inside the cluster. We will create a config file for load balancer service and feed it to the cluster using the "kubectl apply -f config" command. The load balancer service will then tell our cluster to reach out to its cloud provider like AWS, GC, Azure etc and provision something called "LOAD BALANCER". This load balancer exists completely outside the cluster, This load balancer then take traffice or network request from outside the world and direct it to some pod inside the cluster.
+
+Here load balancer is not doing everything for us, As we also need to direct the request to the appropirate pod using some routing match logic so for this we use INGRESS + INGRESS CONTROLLER ( NGINX, Traefik, HAProxy etc ). 
+
+INGRESS + INGRESS CONTROLLER is a pod inside the cluster that has a set of routing rules inside of it and work along side the load balancer. Now let say we have a request coming from outside will 1st comes to load balancer of a cloud provider, But now this load balancer will direct this request to INGRESS CONTROLLER which has a set of routing rules inside of it by looking at the path of incoming request and based on that decide which pod to direct request to finally. When directing request to final pod it means directing it to ClusterIp service of that pod which then direct it to the pod. 
+
+Here we will install " Ingress Nginx " which will install a load balancer service object + ingress automatically. Here the command is " kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml ". Here the same apply -f command to create object out of a config file which kubernetes get from a url in browser.
+
+Here ingress controller has been created now we need to teach it couple of routing rules like how to get incoming request and send it off to appropriate pod. We will do it by creating a config file that contains some routing rules, Then feed it to the cluster where it will be automatically discovered by the ingress controller which will then update its own set of routing rules with the one we gave it.
+
+ CONFIG FILE ::
+
+ (a). kind: Ingress => Creating the ingress object that allow us to expose internal services to external traffic
+
+ (b). metadata: name: ingress-srv => Name of the ingress object
+
+ (c). spec: ingressClassName: nginx => Used to define behaviour of ingress object like how traffic should be routed. Specifies that this Ingress should be handled by the nginx ingress controller.
+
+ (d). spec: rules: => Specify all the different routing rules that we want to teach to this ingress controller.
+
+ (e). host: posts.com => The rule only applies when the request is made to this domain (e.g., http://posts.com/posts).
+
+ (f). path: /posts => Since the /post microservice always contain base route as /posts so here matches all URLs that start with /posts.
+
+ (g). pathType: Prefix => Means the path /posts matches any request that starts with /posts (like /posts/123, /posts/comments, etc).
+
+ (h). backend => Where traffic is forwarded when the rule matches.
+
+ (i). service: name: posts-clusterip-srv , port: number: 4000 => Forwards the traffic to the service named posts-clusterip-srv on port 4000.
+
+Here the above config means This Ingress sets up routing so that any HTTP request to posts.com/posts (or anything prefixed by /posts) is forwarded to the internal Kubernetes service posts-clusterip-srv on port 4000, handled via the nginx ingress controller.
+
+Here with kubernetes single cluster we can host multiple application with different domain so we can have app like " my-app.com, post-tracker.com, blog-app.com etc " and their infrastructure can be hosted inside a single cluster. ingress-controller is set up assuming we have multiple app with different domain hosted in our cluster.
+
+With propertry " rules: host: posts.com ", We are saying all the config below this propertry is tied to app hosted at posts.com. Now this thing has pros and cons, The cons is in dev we are used to accessing things around localhost but here we are deploying the dev environment under the domain name as well so we have to trick our local machine into thinking that the post.com is equivalent to localhost, For this we use " host file in /system32/drivers/etc ".
+
+The hosts file is a plain text file used by your computer to map hostnames (like posts.com) to IP addresses (like 127.0.0.1). It’s kind of like a mini, local version of DNS (Domain Name System). Here right " 127.0.0.1 posts.com " it means Whenever i try to access posts.com, don’t go out to the internet — just treat it like localhost and connect to my own machine. 
+
+127.0.0.1: This is the loopback address, also known as localhost. It points back to your own computer.
+
+posts.com: This is a custom domain name you're defining.
+
+Now we have to make changes to our react code as well so every time user want to interact with our microservices it will make request which goes to host like posts.com which in turn goes to ingress controller to manage the incomming traffic.
+
+Now we need to make pod that will run image container of our react code and also need to make clusterip service so that ingress-nginx controller can direct traffic to this pod so we can serve out HTML, CSS and JS files out of it. 
+
+Here we need to set up routing rules for all microservices, for POST req on /posts go to posts pod, for POST req on /posts/:id/comments go to comments pod, for GET req on /posts go to query pod and for GET req on / go to client pod which serve our react app. 
+
+But right now there is 1 problem in our app we have 2 route clashes with each other /posts for both GET and POST request. The ingress nginx controller cannot do routing based on METHOD TYPE on the request. So we have to rely only on route path to differentiate the request. So a route path of /posts/create for post pod and /posts for query pod. 
+
+So for above we need to make changes to react frontend and /post microservice and re-deploy the pod on k8s cluster. 
+
+ In our " ingress-srv.yaml " ::
+
+  (a). annotations: nginx.ingress.kubernetes.io/use-regex: 'true'  =>  This annotation tells the NGINX Ingress Controller to treat the path values in your Ingress as regular expressions — but only when you're using: pathType: ImplementationSpecific
+
+  (b). path: /posts/.*/comments => Here for dynamic route we use wilecard in ingress-controller " .* ", Any string value can come in its place as long as it is followed by /comments.
+
+  (c). path: /.*  =>  Here to serve our react application when user hit "posts.com" home, Though by using path only as "/" will also work fine but in react app we also use react-router for navigation which require us to always serve index.html page so from there react router continue the work.
+
+  Here the order of path array is also matter from highest to lowest order as the path which comes or matches 1st will be executed 1st as well. So putting the react app path (/.*) at the end because it satisfy all the other path before it and execute only after all other path failes the condition. 
+
+
+########### SKAFFOLD #############
+
+Right now if we have to make changes to our code base in order to deploy we have to build image again, puch to docker hub and last restart deployment.
+
+A better way of changing or automate things inside cluster in dev is using tool called SKAFFOLD. Skaffold is a command-line tool developed by Google that helps you automate the workflow for building, pushing, and deploying your application to Kubernetes — especially during development.
+
+Skaffold watches your code, and every time you change something, it rebuilds your app, redeploys it to your Kubernetes cluster, and shows you the logs. So changing the code in a running pod become easy.
+
+After Skaffold is installed we will configure it by writing out another config file " skaffold.yaml " which will tell Skaffold how to manage all the sub-projects inside our cluster. Its main purpose is to work between different k8s project so that everytime we switch one project to another using skaffold we get a cleaned cluster as skaffold delete the object related to previous project. 
+
+Here whatever we write inside the skaffold.yaml config file is not applied to k8s cluster but rather consumed by skaffold directly because Skaffold is a tool that run outside our cluster. 
+
+  CONFIG FILE ::
+
+  (a). manifests: rawYaml: - ./infra/K8s/*  =>  Here telling skaffold that there is a collection of different config files for kubernetes under the directory "/infra/K8s". Skaffold watch for changes in these yaml files and automatically reapply them to our cluster. By this manifests skaffold make sure to apply, re-create and delete these config file objects anytime skaffold start-up and stop. 
+
+  (b). build: local: push: false  =>  By default when skaffold build or rebuild the images it try to push to docker hub which is not required in dev mode. So disable this default behaviour.
+
+  (c). artifacts => Each artifact is one microservice / app which skaffold will manage 
+
+  (d).  image: bishtaman/client
+  context: client
+  docker:
+    dockerfile: Dockerfile
+  sync:
+    manual:
+      - src: 'src/**/*.js'
+        dest: .
+
+     The above means we are telling skaffold that there is a pod that is running code out of the client directory present in dev environment and whenever any .js files inside that client directory /src/* sub-directory changes, Then skaffold will take those changes and sync with our container code.
+
+     If we make a change to any file other than .js like adding package in package.json then skaffold will rebuild the entire image and deployment tied to it.
+
+     The rest of the sub-projects also follow the same rule. Just the " -src: '*.js' " changes because in case of microservice app we dont have src folder so look out for all .js files inside of it. 
+
+At last run the command " skaffold dev " at the same place the skaffold.yaml config is present. This will 1st clean the whole cluster that is deleting all objects to create freshly new one and print out logs of each app for us in terminal.
+
+Now if we go to let say client source code and make a change to any .js file and saved it the skaffold will detech the change and show "Syncing 1 files for bishtaman/client: id" throw it inside the client pod for us. 
+
+Here right our react app is using HMR and microservices using nodemon to refresh themselves anytime changes happend in the source code. But if we are not using any such tool which will restart the container primary process any time file changes are reflected inside the running pod by skaffold then even after syncing the code the changes will not be reflected inside the pod. It means if our primary process for microservice is only "node index.js" instead of "nodemon index.js" then even after skaffold throws the updated file the changes will not be reflected as inside the pod we still need to have something that will detect the file change restart the container primary process for us. 
+
+Now anytime we want to work on different project using skaffold and stop the current one just kill the terminal by " CRTL + C " and we will see the skaffold will delete all the objects related to the config files under the "manifests:" section and clean the cluster for us for new work. 
+
+
+
 
 

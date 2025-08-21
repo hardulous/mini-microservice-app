@@ -10,7 +10,9 @@ const PostList = () => {
 
     // const res = await axios.get("http://localhost:4000/posts"); // /posts microservice
 
-    const res = await axios.get("http://localhost:4002/posts");  // Now instead of /posts microservice we will use /query microservice to get initial data in efficient format to avoid mutliple network calls
+    // const res = await axios.get("http://localhost:4002/posts");  // Now instead of /posts microservice we will use /query microservice to get initial data in efficient format to avoid mutliple network calls
+
+    const res = await axios.get("http://posts.com/posts");  
 
     setPosts(res.data);
   };
